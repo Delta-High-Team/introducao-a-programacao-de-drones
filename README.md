@@ -1,2 +1,3 @@
-# introducao-a-programacao-de-drones
-Introdução à Programação de Drones
+# Oficina: Introdução à Programação de Drones
+
+Baixar os arquivos:
