@@ -2,7 +2,7 @@
 
 ### Baixar os arquivos:
 - Configuração de [FENCE](OficinaFence.waypoints).
-- Configuração de [RALLY](https://pages.github.com/).
+- Configuração de [RALLY](OficinaRally.waypoints).
 - Código em Python [Oficina.py](https://pages.github.com/).
 
 ### Configuração Simulação
