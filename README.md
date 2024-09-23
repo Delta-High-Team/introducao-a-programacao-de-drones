@@ -9,4 +9,4 @@
 *Extra command line:* --home=-27.5937609,-48.5417189,0,0
 
 ### Slides da apresentação:
-[Apresentação SNCT - Introdução a Programação de Drones Autônomos](Apresentação SNCT - Introdução a Programação de Drones Autônomos.pdf)
+[Apresentação SNCT - Introdução a Programação de Drones Autônomos](Apresentacao-SNCT-Introducao-a-Programacao-de-Drones-Autonomos.pdf)
