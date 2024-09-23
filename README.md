@@ -1,7 +1,7 @@
 # Oficina: Introdução à Programação de Drones
 
 ### Baixar os arquivos:
-- Configuração de [FENCE](https://pages.github.com/).
+- Configuração de [FENCE](OficinaFence.waypoints).
 - Configuração de [RALLY](https://pages.github.com/).
 - Código em Python [Oficina.py](https://pages.github.com/).
 
