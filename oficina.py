@@ -6,6 +6,10 @@ import numpy as np
 
 # Variaveis Globais
 encerra_script = 0
+target_coord    = (0,0)
+coord_base1     = (-275937609,-485417189)   # (Latitude, Longitude)
+coord_base2     = (-275935589,-485417027)
+coord_obstaculo = (-275936563,-485417122)
 
 # Configurar a conexão com o drone usando PyMAVLink
 def vehicle_connection(option = "sitl", mavlink_id = 1):
@@ -226,8 +230,6 @@ def send_position_target_local_ned(vehicle,
         # Holds original heading (yaw is more precise than heading)
         yaw_angle = math.degrees(vehicle.yaw)
     
-    print(x,y,z)
-
     # Send MAVLink Message
     vehicle.mav.set_position_target_local_ned_send(
         0,                          # time_boot_ms
@@ -294,6 +296,46 @@ def position_target_global_int_wait(vehicle, lat, lon, tolerance, timeout):
         time.sleep(1)
     print('Position Target [TIMEOUT=',i,'s]')
 
+# Calcular distancia entre duas coordenadas
+def calcular_distancia(lat1, lon1, lat2, lon2):
+        # Converte valor
+        lat1 = float(lat1/1.0e7)
+        lon1 = float(lon1/1.0e7)
+        lat2 = float(lat2/1.0e7)
+        lon2 = float(lon2/1.0e7)
+
+        R = 6371000  # Raio médio da Terra em metros
+        dlat = math.radians(lat2 - lat1)
+        dlon = math.radians(lon2 - lon1)
+        a = math.sin(dlat / 2) * math.sin(dlat / 2) + math.cos(math.radians(lat1)) * math.cos(
+            math.radians(lat2)) * math.sin(dlon / 2) * math.sin(dlon / 2)
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        distancia = R * c 
+        return distancia
+
+def desvia_obstaculo(vehicle):
+    while not encerra_script:
+        distancia_obstaculo = calcular_distancia(drone.lat,drone.lon,coord_obstaculo[0],coord_obstaculo[1])
+        # print(distancia_obstaculo)
+
+        if (distancia_obstaculo <= 6.0):
+            desvio_x = -1
+            desvio_y = -3
+            target_position_drone = (desvio_x,desvio_y,0)                    # (x,y,z) in drone frame [m]
+            target_position_ned = drone_frame_to_local_ned(target_position_drone, drone.yaw)# (N,E,D) in local ned frame (ajusta heading)
+            target_position_ned.x += drone.x    # Soma posicao atual do drone com o incremento (Posicao relativa)
+            target_position_ned.y += drone.y    # Soma posicao atual do drone com o incremento (Posicao relativa)
+            target_position_ned.z += drone.z    # Soma posicao atual do drone com o incremento (Posicao relativa)
+            print('Desviando do Obstaculo')
+            send_position_target_local_ned(drone, target_position_ned.x, target_position_ned.y)
+            position_target_local_ned_wait(drone, target_position_ned,tolerance=0.5,timeout=120)
+
+            # Retoma movimento anterior
+            print('Retomando movimento')
+            send_position_target_global_int(drone, target_coord[0], target_coord[1])      
+
+        time.sleep(0.5)
+
 #######################################################################################################################
 ##                                              CODE STARTS HERE
 #######################################################################################################################
@@ -309,12 +351,19 @@ thread_listener = threading.Thread(target=listener, args=(drone,))
 thread_listener.daemon = True  # Define a thread como um daemon para que ela seja encerrada quando o programa principal terminar
 thread_listener.start()
 
+# Cria a thread Desvia de Obstaculos
+thread_detectAvoid = threading.Thread(target=desvia_obstaculo, args=(drone,))
+thread_detectAvoid.daemon = True  # Define a thread como um daemon para que ela seja encerrada quando o programa principal terminar
+
 # Decola para 5m de altura
 arm_and_takeoff(vehicle=drone, target_altitude= 5.0)
 
 # Espera pairado por 5s
 print('Pairando')
 time.sleep(5)
+
+# Inicia thread de Desvio de Obstaculo
+# thread_detectAvoid.start()
 
 # # Move pela Posicao Relativa
 # target_position_drone = (5,0,0)                                                # (x,y,z) in drone frame [m]
@@ -329,11 +378,9 @@ time.sleep(5)
 
 # Move pela Coordenada
 print('Iniciando movimento')
-target_coord = (-275935589,-485417027)  # (Latitude, Longitude) - Base 2
-# target_coord = (-275937609,-485417189)  # (Latitude, Longitude) - Base 1
+target_coord =  coord_base1
 send_position_target_global_int(drone, target_coord[0], target_coord[1])  
 position_target_global_int_wait(drone, target_coord[0], target_coord[1], tolerance=50, timeout=120)
-print('Posicao atingida')
 
 # Espera pairado por 5s
 print('Pairando')
@@ -348,4 +395,5 @@ print('Desarmado')
 # Aguarda o termino da thread para finalizar
 encerra_script = 1
 thread_listener.join()
+thread_detectAvoid.join()
 print("FIM")
